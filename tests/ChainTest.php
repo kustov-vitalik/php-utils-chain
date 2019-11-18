@@ -10,7 +10,7 @@ use VKPHPUtils\Tests\Chain\Model\Person;
 class ChainTest extends TestCase
 {
 
-    public function testReverse()
+    public function testReverse(): void
     {
         $rev = Chain::of([1, 2, 3, 4, 5])
             ->reverse()
@@ -28,14 +28,14 @@ class ChainTest extends TestCase
 
     }
 
-    public function testHasKey()
+    public function testHasKey(): void
     {
         $this->assertTrue(Chain::of(['a' => 1, 'b' => 2])->hasKey('a'));
         $this->assertTrue(Chain::of(['a' => 1, 'b' => 2])->hasKey('b'));
         $this->assertFalse(Chain::of(['a' => 1, 'b' => 2])->hasKey('c'));
     }
 
-    public function testMap()
+    public function testMap(): void
     {
         $map = Chain::of([1, 2, 3, 4, 5])
             ->map(
@@ -56,7 +56,7 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testReduce()
+    public function testReduce(): void
     {
         $chain = Chain::of(range(1, 10));
         $this->assertEquals(
@@ -78,7 +78,7 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testToArray()
+    public function testToArray(): void
     {
         $chain = Chain::of([1, 2, 3])->toArray();
         $this->assertIsArray($chain);
@@ -90,7 +90,7 @@ class ChainTest extends TestCase
         $this->assertSame($chain->toArray(), $chain->values()->toArray());
     }
 
-    public function testOf()
+    public function testOf(): void
     {
         $gen = function ($i) {
             foreach (range(0, $i) as $p) {
@@ -107,7 +107,7 @@ class ChainTest extends TestCase
         Chain::of(1);
     }
 
-    public function testUnique()
+    public function testUnique(): void
     {
         $chain = Chain::of([1, 1, 1, 3, 4, 5, 6, 6, 1, 2, 3, 4]);
         $this->assertSame([1, 3, 4, 5, 6, 2], $chain->unique()->values()->toArray());
@@ -115,7 +115,7 @@ class ChainTest extends TestCase
         $this->assertSame([0, 3, 4, 5, 6, 9], $chain->unique(true)->keys()->toArray());
     }
 
-    public function testToChain()
+    public function testToChain(): void
     {
         $this->assertInstanceOf(Chain::class, Chain::of([1, 2, 3])->toChain());
         $this->assertInstanceOf(
@@ -136,21 +136,21 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testPrepend()
+    public function testPrepend(): void
     {
         $this->assertSame([1], Chain::of([])->prepend(1)->toArray());
         $this->assertSame([2, 1], Chain::of()->prepend(1)->prepend(2)->toArray());
         $this->assertSame([3, 2, 1], Chain::of()->prepend(1)->prepend(2)->prepend(3)->toArray());
     }
 
-    public function testHasValue()
+    public function testHasValue(): void
     {
         $this->assertTrue(Chain::of([1, 2, 3])->hasValue(3));
         $this->assertFalse(Chain::of([1, 2, 3])->hasValue('3'));
         $this->assertFalse(Chain::of()->hasValue(3));
     }
 
-    public function testMerge()
+    public function testMerge(): void
     {
         $this->assertSame([1, 2, 3, 4, 5], Chain::of([1, 2])->merge(Chain::of([3, 4, 5]))->toArray());
         $this->assertSame(
@@ -159,7 +159,7 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testFlip()
+    public function testFlip(): void
     {
         $this->assertSame([1 => 'a', 2 => 'b', 5 => 'c'], Chain::of(['a' => 1, 'b' => 2, 'c' => 5])->flip()->toArray());
         $this->assertSame(
@@ -168,20 +168,20 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testKeys()
+    public function testKeys(): void
     {
         $this->assertSame([0, 1, 2], Chain::of([4, 5, 6])->keys()->toArray());
         $this->assertSame([4, 5, 6], Chain::of([4, 5, 6])->flip()->keys()->toArray());
     }
 
-    public function testAppend()
+    public function testAppend(): void
     {
         $this->assertSame([1], Chain::of([])->append(1)->toArray());
         $this->assertSame([1, 2], Chain::of()->append(1)->append(2)->toArray());
         $this->assertSame([1, 2, 3], Chain::of()->append(1)->append(2)->append(3)->toArray());
     }
 
-    public function testSortKeys()
+    public function testSortKeys(): void
     {
         $this->assertSame(
             ['a' => 23, 'b' => 10, 'c' => 'test'],
@@ -201,13 +201,13 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testSlice()
+    public function testSlice(): void
     {
         $this->assertSame([2, 4], Chain::of(range(0, 100))->slice(2, 5, 2)->toArray());
         $this->assertSame([], Chain::of(range(0, 100))->slice(101, 104)->toArray());
     }
 
-    public function testSortValues()
+    public function testSortValues(): void
     {
         $this->assertSame(['a', 'aa', 'b', 'c'], Chain::of(['b', 'c', 'aa', 'a'])->sortValues()->values()->toArray());
         $this->assertSame(
@@ -232,7 +232,7 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testFilter()
+    public function testFilter(): void
     {
         $o = new \stdClass();
         $this->assertSame(
@@ -262,7 +262,7 @@ class ChainTest extends TestCase
         );
     }
 
-    public function testForEach()
+    public function testForEach(): void
     {
         $mock = $this->getMockBuilder(Chain::class)
             ->disableOriginalConstructor()
@@ -279,7 +279,7 @@ class ChainTest extends TestCase
         )->toArray();
     }
 
-    public function testGetIterator()
+    public function testGetIterator(): void
     {
         $this->assertInstanceOf(\ArrayIterator::class, Chain::of()->getIterator());
         $chain = Chain::of([1, 2, 3]);
@@ -290,13 +290,13 @@ class ChainTest extends TestCase
 
     }
 
-    public function testValues()
+    public function testValues(): void
     {
         $chain = Chain::of(['a' => 1, 'b' => 'c', 3 => 'd']);
         $this->assertSame([1, 'c', 'd'], $chain->values()->toArray());
     }
 
-    public function testIntersect()
+    public function testIntersect(): void
     {
         $chain = Chain::of([1, 2, 3, 4]);
 
@@ -305,20 +305,20 @@ class ChainTest extends TestCase
         $this->assertSame($chain->toArray(), $chain->intersect($chain)->toArray());
     }
 
-    public function testIsEmpty()
+    public function testIsEmpty(): void
     {
         $this->assertTrue(Chain::of()->isEmpty());
         $this->assertFalse(Chain::of([1])->isEmpty());
     }
 
-    public function testSize()
+    public function testSize(): void
     {
         $this->assertEquals(0, Chain::of()->size());
         $this->assertEquals(1, Chain::of([1])->size());
         $this->assertEquals(5, Chain::of([1, 2, 3, 4, 5])->size());
     }
 
-    public function testSortByProperty()
+    public function testSortByProperty(): void
     {
         $testData = [
             $a = ['name' => 'a', 'age' => 1, 'address' => ['street' => 'aa', 'home' => ['number' => 11]]],
@@ -378,5 +378,58 @@ class ChainTest extends TestCase
             [1 => $b, 0 => $a, 4 => $e, 5 => $f, 3 => $d, 2 => $c],
             $chain->sortByProperty('address.home[number]')->toArray()
         );
+    }
+
+    public function testFlatMap(): void
+    {
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11), ['Child11', 'Child12']),
+            $b = new Person('b', 9, new Address('ab', 10), ['Child21', 'Child22']),
+            $c = new Person('c', 8, new Address('ac', 19), ['Child31', 'Child32']),
+            $d = new Person('d', 7, new Address('ba', 15), ['Child41', 'Child42']),
+            $e = new Person('e', 6, new Address('cd', 13), ['Child51', 'Child52']),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $chain = Chain::of($testData);
+
+        $this->assertSame([
+            $testData[0]->getAddress(),
+            $testData[1]->getAddress(),
+            $testData[2]->getAddress(),
+            $testData[3]->getAddress(),
+            $testData[4]->getAddress(),
+            $testData[5]->getAddress(),
+        ], $result = $chain->flatMap(static function (Person $person) { yield $person->getAddress();})->toArray());
+
+        $this->assertSame([
+            $testData[0]->getAddress(),
+            $testData[1]->getAddress(),
+            $testData[2]->getAddress(),
+            $testData[3]->getAddress(),
+            $testData[4]->getAddress(),
+            $testData[5]->getAddress(),
+        ], $result = $chain->flatMap(static function (Person $person) { return [$person->getAddress()];})->toArray());
+
+        $this->assertSame([
+            $testData[0]->getAddress(),
+            $testData[1]->getAddress(),
+            $testData[2]->getAddress(),
+            $testData[3]->getAddress(),
+            $testData[4]->getAddress(),
+            $testData[5]->getAddress(),
+        ], $result = $chain->flatMap(static function (Person $person) { return new \ArrayIterator([$person->getAddress()]);})->toArray());
+
+        $this->assertSame([
+            'Child11', 'Child12', 'Child21', 'Child22', 'Child31', 'Child32', 'Child41', 'Child42', 'Child51', 'Child52'
+        ], $chain->flatMap(static function (Person $person) { yield from $person->getChildren(); })->toArray());
+
+        $this->assertSame([
+            'Child11', 'Child12', 'Child21', 'Child22', 'Child31', 'Child32', 'Child41', 'Child42', 'Child51', 'Child52'
+        ], $chain->flatMap(static function (Person $person) { return $person->getChildren(); })->toArray());
+
+        $this->assertSame([
+            'Child11', 'Child12', 'Child21', 'Child22', 'Child31', 'Child32', 'Child41', 'Child42', 'Child51', 'Child52'
+        ], $chain->flatMap(static function (Person $person) { return new \ArrayIterator($person->getChildren()); })->toArray());
     }
 }

@@ -11,6 +11,7 @@ class MapOperator extends Operator
     public const TYPES = [
         self::TYPE_FILTER,
         self::TYPE_MAP,
+        self::TYPE_FLAT_MAP,
         self::TYPE_FLIP,
         self::TYPE_FOREACH,
         self::TYPE_KEYS,

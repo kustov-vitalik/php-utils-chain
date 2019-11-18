@@ -7,7 +7,6 @@ namespace VKPHPUtils\Chain;
 
 
 use ArrayIterator;
-use Generator;
 use InvalidArgumentException;
 use Iterator;
 use IteratorAggregate;
@@ -60,7 +59,7 @@ class Chain implements IteratorAggregate, \JsonSerializable
 
                 public function __invoke($index, $value)
                 {
-                    return [$index, ($this->mapFn)($value)];
+                    yield $index => ($this->mapFn)($value);
                 }
             }
         );
@@ -92,27 +91,17 @@ class Chain implements IteratorAggregate, \JsonSerializable
                 public function __invoke($index, $value, array $attributes = [])
                 {
                     if (is_callable($this->callback)) {
-                        if (($this->callback)($value) == false) {
-                            return [null, null];
+                        /** @noinspection TypeUnsafeComparisonInspection */
+                        if (($this->callback)($value) != false) {
+                            if ($this->saveIndex) {
+                                yield $index => $value;
+                            } else {
+                                yield $this->index++ => $value;
+                            }
                         }
-
-                        if ($this->saveIndex) {
-                            return [$index, $value];
-                        }
-
-                        return [$this->index++, $value];
+                    } /** @noinspection TypeUnsafeComparisonInspection */ elseif ($value != false) {
+                        yield $this->saveIndex ? $index : $this->index++ => $value;
                     }
-
-                    if ($value == false) {
-                        return [null, null];
-                    }
-
-                    if ($this->saveIndex) {
-                        return [$index, $value];
-                    }
-
-                    return [$this->index++, $value];
-
                 }
             }
         );
@@ -139,7 +128,7 @@ class Chain implements IteratorAggregate, \JsonSerializable
                 {
                     ($this->fn)($value);
 
-                    return [$index, $value];
+                    yield $index => $value;
                 }
             }
         );
@@ -152,7 +141,7 @@ class Chain implements IteratorAggregate, \JsonSerializable
         $this->operators[] = new MapOperator(
             Operator::TYPE_FLIP,
             static function ($index, $value) {
-                return [$value, $index];
+                yield $value => $index;
             }
         );
 
@@ -168,7 +157,7 @@ class Chain implements IteratorAggregate, \JsonSerializable
 
                 public function __invoke($index, $value)
                 {
-                    return [$this->index++, $index];
+                    yield $this->index++ => $index;
                 }
             }
         );
@@ -185,7 +174,7 @@ class Chain implements IteratorAggregate, \JsonSerializable
 
                 public function __invoke($index, $value)
                 {
-                    return [$this->index++, $value];
+                    yield ($this->index++) => $value;
                 }
             }
         );
@@ -196,25 +185,26 @@ class Chain implements IteratorAggregate, \JsonSerializable
     public function unique(bool $saveIndexes = false): Chain
     {
         $this->operators[] = new MapOperator(
-            Operator::TYPE_UNIQUE, new class
+            Operator::TYPE_UNIQUE, new class($saveIndexes)
         {
             private $index = 0;
             private $cache = [];
+            /** @var bool */
+            private $saveIndex;
 
-            public function __invoke($index, $value, array $attributes = [])
+            public function __construct(bool $saveIndexes)
+            {
+                $this->saveIndex = $saveIndexes;
+            }
+
+            public function __invoke($index, $value)
             {
                 if (!in_array($value, $this->cache, true)) {
                     $this->cache[] = $value;
-                    if ($attributes['saveIndexes']) {
-                        return [$index, $value];
-                    }
-
-                    return [$this->index++, $value];
+                    yield $this->saveIndex ? $index : $this->index++ => $value;
                 }
-
-                return [null, null];
             }
-        }, ['saveIndexes' => $saveIndexes]
+        }
         );
 
         return $this;
@@ -252,14 +242,8 @@ class Chain implements IteratorAggregate, \JsonSerializable
                 public function __invoke($index, $value, array $attributes)
                 {
                     if (in_array($value, $this->chainCache, true)) {
-                        if ($this->saveIndex) {
-                            return [$index, $value];
-                        }
-
-                        return [$this->index++, $value];
+                        yield $this->saveIndex ? $index : $this->index++ => $value;
                     }
-
-                    return [null, null];
                 }
             }
         );
@@ -288,13 +272,23 @@ class Chain implements IteratorAggregate, \JsonSerializable
             $results[$key] = [];
             if ($function instanceof MapOperator) {
                 foreach ($results[$key - 1] as $k => $item) {
-                    [$index, $value] = $function->getCallable()($k, $item, $function->getAttributes());
-                    if ($index !== null && $value !== null) {
-                        $results[$key][$index] = $value;
+                    $gen = $function->getCallable()($k, $item, $function->getAttributes());
+                    if ($gen instanceof Iterator) {
+                        foreach ($gen as $index => $value) {
+                            $results[$key][$index] = $value;
+                        }
+                    } elseif (is_array($gen)) {
+                        [$index, $value] = $gen;
+                        if ($index !== null && $value !== null) {
+                            $results[$key][$index] = $value;
+                        }
                     }
                 }
             } elseif ($function instanceof IterableCallableOperator) {
-                $results[$key] = $function->getCallable()($results[$key - 1], $function->getAttributes());
+                $result = $function->getCallable()($results[$key - 1], $function->getAttributes());
+                foreach ($result as $index => $value) {
+                    $results[$key][$index] = $value;
+                }
             } else {
                 throw new RuntimeException('Failed functor: '.$function->getType());
             }
@@ -306,37 +300,72 @@ class Chain implements IteratorAggregate, \JsonSerializable
         return end($results);
     }
 
+    public function flatMap(callable $fn): Chain
+    {
+        $this->operators[] = new MapOperator(Operator::TYPE_FLAT_MAP, new class($fn) {
+            /**
+             * @var callable
+             */
+            private $callable;
+
+            private $index = 0;
+
+            /**
+             *  constructor.
+             * @param callable $fn
+             */
+            public function __construct(callable $fn)
+            {
+                $this->callable = $fn;
+            }
+
+            public function __invoke($index, $value, array $attributes = [])
+            {
+                $result = ($this->callable)($value, $index);
+                if (!is_iterable($result)) {
+                    throw new \LogicException('Callable must return iterable result');
+                }
+
+                foreach ($result as $item) {
+                    yield $this->index++ => $item;
+                }
+            }
+        });
+        return $this;
+    }
+
     public function slice(int $firstIncluded, int $lastExcluded, int $step = 1, bool $saveIndexes = false): Chain
     {
         $this->operators[] = new MapOperator(
             Operator::TYPE_SLICE,
-            new class
+            new class($saveIndexes, $firstIncluded, $lastExcluded, $step)
             {
                 private $index = 0;
-                private $resultIndex = 0;
+                private $pointer = 0;
+                /** @var bool */
+                private $saveIndex;
 
-                public function __invoke($index, $value, array $attributes = [])
+                private $first;
+                private $last;
+                private $step;
+
+                public function __construct(bool $saveIndexes, $first, $last, $step)
                 {
-                    $first = $attributes['first'];
-                    $last = $attributes['last'];
-                    $step = $attributes['step'];
-                    $saveIndexes = $attributes['saveIndexes'];
+                    $this->saveIndex = $saveIndexes;
+                    $this->first = $first;
+                    $this->last = $last;
+                    $this->step = $step;
+                }
 
-                    $return = [null, null];
-                    if ($this->index >= $first && $this->index < $last && ($this->index - $first) % $step === 0) {
-                        if ($saveIndexes) {
-                            $return = [$index, $value];
-                        } else {
-                            $return = [$this->resultIndex++, $value];
-                        }
+                public function __invoke($index, $value)
+                {
+                    if ($this->pointer >= $this->first && $this->pointer < $this->last && ($this->pointer - $this->first) % $this->step === 0) {
+                        yield $this->saveIndex ? $index : $this->index++ => $value;
                     }
-
-                    $this->index++;
-
-                    return $return;
+                    $this->pointer++;
                 }
             },
-            ['first' => $firstIncluded, 'last' => $lastExcluded, 'step' => $step, 'saveIndexes' => $saveIndexes]
+            ['first' => $firstIncluded, 'last' => $lastExcluded, 'step' => $step]
         );
 
         return $this;
@@ -366,8 +395,11 @@ class Chain implements IteratorAggregate, \JsonSerializable
     {
         $this->operators[] = new IterableCallableOperator(
             Operator::TYPE_REVERSE,
-            static function (iterable $items, array $attributes) {
-                return array_reverse((array)$items, $attributes['saveIndex'] ?? false);
+            static function (iterable $items, array $attributes) use($saveIndexes) {
+                $items = array_reverse((array)$items, $saveIndexes);
+                foreach ($items as $index => $item) {
+                    yield $index => $item;
+                }
             },
             ['saveIndex' => $saveIndexes]
         );
@@ -392,7 +424,10 @@ class Chain implements IteratorAggregate, \JsonSerializable
 
                 public function __invoke(iterable $items)
                 {
-                    return array_merge((array)$items, $this->chain->toArray());
+                    $items = array_merge((array)$items, $this->chain->toArray());
+                    foreach ($items as $index => $item) {
+                        yield $index => $item;
+                    }
                 }
             }
         );
@@ -404,13 +439,17 @@ class Chain implements IteratorAggregate, \JsonSerializable
     {
         $this->operators[] = new IterableCallableOperator(
             Operator::TYPE_APPEND,
-            static function (iterable $items, array $attributes) {
-                $value = $attributes['value'];
-                $items = (array)$items;
-                $items[] = $value;
-
-                return $items;
-            }, ['value' => $value]
+            static function (iterable $items) use($value) {
+                $lastIndex = null;
+                foreach ($items as $index => $item) {
+                    if (is_int($index)) {
+                        $lastIndex = $index;
+                    }
+                    yield $index => $item;
+                }
+                $lastIndex = $lastIndex === null ? 0 : ($lastIndex + 1);
+                yield $lastIndex => $value;
+            }
         );
 
         return $this;
@@ -420,12 +459,16 @@ class Chain implements IteratorAggregate, \JsonSerializable
     {
         $this->operators[] = new IterableCallableOperator(
             Operator::TYPE_PREPEND,
-            static function (iterable $items, array $attributes) {
-                $value = $attributes['value'];
-                $items = (array)$items;
-                array_unshift($items, $value);
-                return $items;
-            }, ['value' => $value]
+            static function (iterable $items) use($value) {
+                yield 0 => $value;
+                foreach ($items as $key => $item) {
+                    if (is_int($key)) {
+                        yield ($key + 1) => $item;
+                    } else {
+                        yield $key => $item;
+                    }
+                }
+            }
         );
 
         return $this;
@@ -460,7 +503,9 @@ class Chain implements IteratorAggregate, \JsonSerializable
                     uasort($items, $sortFn);
                 }
 
-                return $items;
+                foreach ($items as $index => $item) {
+                    yield $index => $item;
+                }
             }, ['sorterFn' => $sortFn, 'flags' => $sortFlags, 'direction' => $direction]
         );
 
@@ -530,7 +575,9 @@ class Chain implements IteratorAggregate, \JsonSerializable
                     $items = (array)$items;
                     uasort($items, $this->getSortFn());
 
-                    return $items;
+                    foreach ($items as $index => $item) {
+                        yield $index => $item;
+                    }
                 }
 
                 private function getSortFn(): callable
@@ -578,7 +625,9 @@ class Chain implements IteratorAggregate, \JsonSerializable
                     uksort($items, $sortFn);
                 }
 
-                return $items;
+                foreach ($items as $index => $item) {
+                    yield $index => $item;
+                }
             }, ['sorterFn' => $sortFn, 'flags' => $sortFlags, 'direction' => $direction]
         );
 

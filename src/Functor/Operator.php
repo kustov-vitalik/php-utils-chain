@@ -26,6 +26,7 @@ abstract class Operator
     public const TYPE_SORT_VALUES = 'sortValues';
     public const TYPE_SORT_KEYS = 'sortKeys';
     public const TYPE_REVERSE = 'reverse';
+    public const TYPE_FLAT_MAP = 'flatMap';
 
     /**
      * @var callable
