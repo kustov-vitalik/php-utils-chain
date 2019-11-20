@@ -16,7 +16,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "VKPHPUtils\\Tests\\Chain\\": "tests/"
+            "VKPHPUtils\\Chain\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "stable",

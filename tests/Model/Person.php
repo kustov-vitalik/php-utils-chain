@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 
-namespace VKPHPUtils\Tests\Chain\Model;
+namespace VKPHPUtils\Chain\Tests\Model;
 
 
 class Person
