@@ -356,4 +356,12 @@ class ChainImmutable extends Chain
 
         return null;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function remove($key): Chain
+    {
+        return new self($this->applyFn($this->getRemoteFunction($key)));
+    }
 }

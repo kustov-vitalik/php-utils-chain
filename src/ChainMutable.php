@@ -491,4 +491,15 @@ class ChainMutable extends Chain
     }
 
 
+    /**
+     * @inheritDoc
+     */
+    public function remove($key): Chain
+    {
+        $this->operatorsChain[] = new Generator(
+            $this->applyFn(end($this->operatorsChain), $this->getRemoteFunction($key))
+        );
+
+        return $this;
+    }
 }

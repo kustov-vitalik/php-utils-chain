@@ -490,6 +490,22 @@ class ChainMutableTest extends TestCase
             Chain::immutable([-1, 0, 1, 2, 3, 4])->diff([3, 4, -1, 5, 6])->toArray()
         );
         $this->assertSame([2 => 5, 3 => 6], Chain::immutable([3, 4, 5, 6])->diff([1, 2, 3, 4])->toArray());
+
+
+        $o1 = new \stdClass();
+        $o2 = new \stdClass();
+        $o3 = new \stdClass();
+
+        $chain1 = Chain::of([$o1, $o2, $o3]);
+        $chain2 = Chain::of([$o1]);
+
+        $this->assertSame([1 => $o2, 2 => $o3], $chain1->diff($chain2)->toArray());
+        $this->assertSame([], $chain2->diff($chain1)->toArray());
+
+        $chain3 = Chain::of([1, $o1, $o2]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Could not compare object with scalar');
+        $chain3->diff($chain1)->toArray();
     }
 
     public function testMix(): void
@@ -543,5 +559,20 @@ class ChainMutableTest extends TestCase
 
     private function iterator(int $i): \Iterator {
         return new \ArrayIterator(range(0, $i - 1));
+    }
+
+    public function testCount(): void
+    {
+        $chain = Chain::of(0,6);
+        $this->assertCount(2, $chain);
+        $this->assertEquals(2, count($chain));
+    }
+
+    public function testRemove(): void
+    {
+        $chain = Chain::of('test', 'test2');
+        $chain = $chain->remove(0);
+        $this->assertFalse($chain->hasKey(0));
+        $this->assertTrue($chain->hasKey(1));
     }
 }

@@ -12,7 +12,7 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
  * Class Chain
  * @package VKPHPUtils\Chain
  */
-abstract class Chain implements \IteratorAggregate, \JsonSerializable
+abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countable
 {
     /**
      * Initialize mutable chain
@@ -40,6 +40,15 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    /**
+     * Same as {@see size}
+     * @return int
+     */
+    public function count(): int
+    {
+        return $this->size();
     }
 
     /**
@@ -88,6 +97,13 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable
      * @return mixed
      */
     abstract public function search($value);
+
+    /**
+     * Removes element with index eq to $key
+     * @param $key
+     * @return Chain
+     */
+    abstract public function remove($key): Chain;
 
     /**
      * Flip the chain
@@ -606,7 +622,19 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable
     protected function getDiffFunction(array $data): callable
     {
         return function (iterable $items) use ($data) {
-            yield from array_diff($this->iterableToArray($items), $data);
+            $items = $this->iterableToArray($items);
+            $comparator = static function ($a, $b) {
+                if (is_object($a) && is_object($b)) {
+                    return strcmp(spl_object_hash($a), spl_object_hash($b));
+                }
+
+                if ((is_object($a) && !is_object($b)) || (!is_object($a) && is_object($b))) {
+                    throw new \InvalidArgumentException('Could not compare object with scalar');
+                }
+
+                return $a <=> $b;
+            };
+            yield from array_udiff($items, $data, $comparator);
         };
     }
 
@@ -729,6 +757,17 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable
                 }
             }
             yield from $histogram;
+        };
+    }
+
+    protected function getRemoteFunction($key)
+    {
+        return static function (iterable $items) use ($key) {
+            foreach ($items as $k => $v) {
+                if ($k !== $key) {
+                    yield $k => $v;
+                }
+            }
         };
     }
 }
