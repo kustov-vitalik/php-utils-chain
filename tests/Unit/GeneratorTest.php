@@ -6,7 +6,9 @@ declare(strict_types=1);
 namespace VKPHPUtils\Chain\Tests\Unit;
 
 
+use Exception;
 use PHPUnit\Framework\TestCase;
+use Traversable;
 use VKPHPUtils\Chain\Generator;
 
 class GeneratorTest extends TestCase
@@ -164,5 +166,18 @@ class GeneratorTest extends TestCase
             }
         }
         $this->assertSame([0,1,2,3,4,5,6,7,8,9], $result);
+
+
+    }
+
+    public function testFailedInitialization(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        new Generator(new class implements \IteratorAggregate {
+            public function getIterator()
+            {
+                throw new \RuntimeException('test exception in ' . __METHOD__);
+            }
+        });
     }
 }

@@ -352,7 +352,7 @@ class ChainImmutableTest extends TestCase
         $this->assertEquals(0, Chain::immutable()->size());
         $this->assertEquals(1, Chain::immutable([1])->size());
         $this->assertEquals(5, Chain::immutable([1, 2, 3, 4, 5])->size());
-        $chain = Chain::immutable(1,2,3,4,5);
+        $chain = Chain::immutable(1, 2, 3, 4, 5);
         /** @var \Iterator $it */
         $it = $chain->getIterator();
         $it->next();
@@ -390,8 +390,7 @@ class ChainImmutableTest extends TestCase
             $GChain->sortByProperty('[address][home][number]')->toArray()
         );
 
-        $this->expectException(\InvalidArgumentException::class);
-        $GChain->sortByProperty('[address][home][number]', 10)->toArray();
+
 
         $testData = [
             $a = new Person('a', 1, new Address('aa', 11)),
@@ -422,6 +421,57 @@ class ChainImmutableTest extends TestCase
         );
     }
 
+    public function testSortByPropertyInvalidProperty(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::immutable($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('invalidField')->toArray();
+    }
+
+    public function testSortByPropertyInvalidIndex(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::immutable($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('[invalidIndex]')->toArray();
+    }
+
+    public function testSortByPropertyInvalidSortDirection(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::immutable($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('name', 10)->toArray();
+    }
+
     public function testFlatMap(): void
     {
         $testData = [
@@ -434,6 +484,15 @@ class ChainImmutableTest extends TestCase
         ];
 
         $GChain = Chain::immutable($testData);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Passed to flatMap() callback function must return iterable data');
+        $GChain->flatMap(
+            static function (Person $person) {
+                // the callback does not return iterable data
+                return $person->getAddress();
+            }
+        )->toArray();
 
         $this->assertSame(
             [
@@ -619,7 +678,7 @@ class ChainImmutableTest extends TestCase
 
     public function testGetValue()
     {
-        $chain = Chain::immutable(0,1,2,3,4,5,6);
+        $chain = Chain::immutable(0, 1, 2, 3, 4, 5, 6);
         $this->assertEquals(0, $chain->getValue(0));
         $this->assertEquals(1, $chain->getValue(1));
         $this->assertEquals(2, $chain->getValue(2));
@@ -632,7 +691,7 @@ class ChainImmutableTest extends TestCase
 
     public function testSearch(): void
     {
-        $chain = Chain::immutable(0,6);
+        $chain = Chain::immutable(0, 6);
         $this->assertEquals(0, $chain->search(0));
         $this->assertEquals(1, $chain->search(6));
         $this->assertNull($chain->search('6'));
@@ -641,7 +700,7 @@ class ChainImmutableTest extends TestCase
 
     public function testCount(): void
     {
-        $chain = Chain::immutable(0,6);
+        $chain = Chain::immutable(0, 6);
         $this->assertCount(2, $chain);
         $this->assertEquals(2, count($chain));
     }
@@ -652,5 +711,14 @@ class ChainImmutableTest extends TestCase
         $chain = $chain->remove(0);
         $this->assertFalse($chain->hasKey(0));
         $this->assertTrue($chain->hasKey(1));
+    }
+
+    public function testJsonSerialize(): void
+    {
+        $this->assertEquals(json_encode([0 => 1, 1 => 2]), json_encode(Chain::immutable(1, 2)));
+        $this->assertEquals(
+            json_encode([0 => 1, 1 => 2], JSON_THROW_ON_ERROR, 512),
+            json_encode(Chain::immutable(1, 2), JSON_THROW_ON_ERROR, 512)
+        );
     }
 }

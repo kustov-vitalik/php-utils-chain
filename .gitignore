@@ -1,3 +1,6 @@
 *.iml
 .idea
 vendor
+.phpunit.result.cache
+build
+phpunit.xml

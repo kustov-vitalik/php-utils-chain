@@ -370,9 +370,6 @@ class ChainMutableTest extends TestCase
             $GChain->sortByProperty('[address][home][number]')->toArray()
         );
 
-        $this->expectException(\InvalidArgumentException::class);
-        $GChain->sortByProperty('[address][home][number]', 10)->toArray();
-
         $testData = [
             $a = new Person('a', 1, new Address('aa', 11)),
             $b = new Person('b', 9, new Address('ab', 10)),
@@ -402,6 +399,57 @@ class ChainMutableTest extends TestCase
         );
     }
 
+    public function testSortByPropertyInvalidProperty(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::of($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('invalidField')->toArray();
+    }
+
+    public function testSortByPropertyInvalidIndex(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::of($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('[invalidIndex]')->toArray();
+    }
+
+    public function testSortByPropertyInvalidSortDirection(): void
+    {
+
+        $testData = [
+            $a = new Person('a', 1, new Address('aa', 11)),
+            $b = new Person('b', 9, new Address('ab', 10)),
+            $c = new Person('c', 8, new Address('ac', 19)),
+            $d = new Person('d', 7, new Address('ba', 15)),
+            $e = new Person('e', 6, new Address('cd', 13)),
+            $f = new Person('f', 5, new Address('bf', 14)),
+        ];
+
+        $GChain = Chain::of($testData);
+        $this->expectException(\InvalidArgumentException::class);
+        $GChain->sortByProperty('name', 10)->toArray();
+    }
+
     public function testFlatMap(): void
     {
         $testData = [
@@ -414,6 +462,15 @@ class ChainMutableTest extends TestCase
         ];
 
         $GChain = Chain::of($testData);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Passed to flatMap() callback function must return iterable data');
+        $GChain->flatMap(
+            static function (Person $person) {
+                // the callback does not return iterable data
+                return $person->getAddress();
+            }
+        )->toArray();
 
         $this->assertSame([
             $testData[0]->getAddress(),
@@ -466,7 +523,7 @@ class ChainMutableTest extends TestCase
                 5 => 1,
                 6 => 1,
             ],
-            Chain::immutable([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 1, 2, 3, 1, 2, 1])->frequencyAnalysis()->toArray()
+            Chain::of([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 1, 2, 3, 1, 2, 1])->frequencyAnalysis()->toArray()
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -479,7 +536,7 @@ class ChainMutableTest extends TestCase
                 5 => 1,
                 6 => 1,
             ],
-            Chain::immutable([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 1, 2, 3, 1, 2, []])->frequencyAnalysis()->toArray()
+            Chain::of([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 1, 2, 3, 1, 2, []])->frequencyAnalysis()->toArray()
         );
     }
 
@@ -487,9 +544,9 @@ class ChainMutableTest extends TestCase
     {
         $this->assertSame(
             [1 => 0, 2 => 1, 3 => 2],
-            Chain::immutable([-1, 0, 1, 2, 3, 4])->diff([3, 4, -1, 5, 6])->toArray()
+            Chain::of([-1, 0, 1, 2, 3, 4])->diff([3, 4, -1, 5, 6])->toArray()
         );
-        $this->assertSame([2 => 5, 3 => 6], Chain::immutable([3, 4, 5, 6])->diff([1, 2, 3, 4])->toArray());
+        $this->assertSame([2 => 5, 3 => 6], Chain::of([3, 4, 5, 6])->diff([1, 2, 3, 4])->toArray());
 
 
         $o1 = new \stdClass();
@@ -510,7 +567,7 @@ class ChainMutableTest extends TestCase
 
     public function testMix(): void
     {
-        $chain = Chain::immutable(1, 2, 3, 4)->mix();
+        $chain = Chain::of(1, 2, 3, 4)->mix();
         $this->assertTrue($chain->hasValue(1));
         $this->assertTrue($chain->hasValue(2));
         $this->assertTrue($chain->hasValue(3));
@@ -519,7 +576,7 @@ class ChainMutableTest extends TestCase
 
     public function testSetValue(): void
     {
-        $chain = Chain::immutable();
+        $chain = Chain::of();
         $this->assertSame(['key' => 'value'], $chain->setValue('key', 'value')->toArray());
         $this->assertSame(['key' => 'value2'], $chain->setValue('key', 'value')->setValue('key', 'value2')->toArray());
         $this->assertSame(
@@ -531,7 +588,7 @@ class ChainMutableTest extends TestCase
 
     public function testGetValue()
     {
-        $chain = Chain::immutable(0,1,2,3,4,5,6);
+        $chain = Chain::of(0,1,2,3,4,5,6);
         $this->assertEquals(0, $chain->getValue(0));
         $this->assertEquals(1, $chain->getValue(1));
         $this->assertEquals(2, $chain->getValue(2));
@@ -544,7 +601,7 @@ class ChainMutableTest extends TestCase
 
     public function testSearch(): void
     {
-        $chain = Chain::immutable(0,6);
+        $chain = Chain::of(0,6);
         $this->assertEquals(0, $chain->search(0));
         $this->assertEquals(1, $chain->search(6));
         $this->assertNull($chain->search('6'));
@@ -574,5 +631,14 @@ class ChainMutableTest extends TestCase
         $chain = $chain->remove(0);
         $this->assertFalse($chain->hasKey(0));
         $this->assertTrue($chain->hasKey(1));
+    }
+
+    public function testJsonSerialize(): void
+    {
+        $this->assertEquals(json_encode([0 => 1, 1 => 2]), json_encode(Chain::of(1, 2)));
+        $this->assertEquals(
+            json_encode([0 => 1, 1 => 2], JSON_THROW_ON_ERROR, 512),
+            json_encode(Chain::of(1, 2), JSON_THROW_ON_ERROR, 512)
+        );
     }
 }

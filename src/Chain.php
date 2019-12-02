@@ -6,6 +6,8 @@ declare(strict_types=1);
 namespace VKPHPUtils\Chain;
 
 
+use Symfony\Component\PropertyAccess\Exception\NoSuchIndexException;
+use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 
 /**
@@ -14,6 +16,9 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
  */
 abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countable
 {
+
+    protected Generator $generator;
+
     /**
      * Initialize mutable chain
      * @param mixed ...$items
@@ -35,7 +40,7 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     }
 
     /**
-     * @return array|mixed
+     * @return mixed
      */
     public function jsonSerialize()
     {
@@ -43,7 +48,13 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     }
 
     /**
-     * Same as {@see size}
+     * Converts the chain to array (applies all chain-functions)
+     * @return array
+     */
+    abstract public function toArray(): array;
+
+    /**
+     * Same as {@see size()}. Allows to call count($chain)
      * @return int
      */
     public function count(): int
@@ -52,10 +63,90 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     }
 
     /**
-     * Converts the chain to array (applies all chain-functions)
-     * @return array
+     * Get the chain size (number of elements)
+     * @return int
      */
-    abstract public function toArray(): array;
+    public function size(): int
+    {
+        return iterator_count($this->generator);
+    }
+
+    /**
+     * Searches position (key) of the value in current chain. Returns null if the value not found
+     * @param $value
+     * @return mixed
+     */
+    public function search($value)
+    {
+        foreach ($this as $k => $item) {
+            if ($value === $item) {
+                return $k;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get value using key
+     * @param $key
+     * @return mixed
+     */
+    public function getValue($key)
+    {
+        foreach ($this as $k => $item) {
+            if ($k === $key) {
+                return $item;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check exists the key in current chain or no
+     * @param $key
+     * @return bool
+     */
+    public function hasKey($key): bool
+    {
+        foreach ($this as $index => $v) {
+            if ($index === $key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Calculate aggregate function result
+     * @param callable $fn
+     * @param mixed $initialValue
+     * @return mixed
+     */
+    public function reduce(callable $fn, $initialValue = null)
+    {
+        $result = $initialValue;
+        foreach ($this as $value) {
+            $result = $fn($result, $value);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Check is the chain empty
+     * @return bool
+     */
+    public function isEmpty(): bool
+    {
+        foreach ($this as $item) {
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * Created histogram/frequency analysis of the chain
@@ -85,20 +176,6 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     abstract public function setValue($key, $value): Chain;
 
     /**
-     * Get value using key
-     * @param $key
-     * @return mixed
-     */
-    abstract public function getValue($key);
-
-    /**
-     * Searches position (key) of the value in current chain. Returns null if the value not found
-     * @param $value
-     * @return mixed
-     */
-    abstract public function search($value);
-
-    /**
      * Removes element with index eq to $key
      * @param $key
      * @return Chain
@@ -124,21 +201,6 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
      * @return Chain
      */
     abstract public function reverse(bool $saveIndex = false): Chain;
-
-    /**
-     * Check exists the key in current chain or no
-     * @param $key
-     * @return bool
-     */
-    abstract public function hasKey($key): bool;
-
-    /**
-     * Calculate aggregate function result
-     * @param callable $fn
-     * @param null $initialValue
-     * @return mixed
-     */
-    abstract public function reduce(callable $fn, $initialValue = null);
 
     /**
      * Unique items of current chain
@@ -252,29 +314,17 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
 
     /**
      * Calculates intersection of two sets (current chain and passed one). Non index-safe operation
-     * @param mixed ...$elements
+     * @param Chain|iterable|mixed ...$elements
      * @return Chain
      */
     abstract public function intersect(...$elements): Chain;
 
     /**
      * Calculates intersection of two sets (current chain and passed one). Index-safe operation
-     * @param mixed ...$elements
+     * @param Chain|iterable|mixed ...$elements
      * @return Chain
      */
     abstract public function intersectKeepIndexes(...$elements): Chain;
-
-    /**
-     * Check is the chain empty
-     * @return bool
-     */
-    abstract public function isEmpty(): bool;
-
-    /**
-     * Get the chain size (number of elements)
-     * @return int
-     */
-    abstract public function size(): int;
 
     /**
      * Sorts collection by given property
@@ -322,6 +372,21 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     }
 
     /**
+     * Converts an iterable to an array
+     * @param iterable $items
+     * @return array
+     */
+    protected function iterableToArray(iterable $items): array
+    {
+        $array = [];
+        foreach ($items as $k => $item) {
+            $array[$k] = $item;
+        }
+
+        return $array;
+    }
+
+    /**
      * @param array $data
      * @return callable
      */
@@ -330,25 +395,6 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
         return function (iterable $items) use ($data) {
             yield from array_merge($this->iterableToArray($items), $data);
         };
-    }
-
-    /**
-     * Converts an iterable to an array
-     * @param iterable $items
-     * @return array
-     */
-    protected function iterableToArray(iterable $items): array
-    {
-        if (is_array($items)) {
-            return $items;
-        }
-
-        $array = [];
-        foreach ($items as $k => $item) {
-            $array[$k] = $item;
-        }
-
-        return $array;
     }
 
     /**
@@ -458,19 +504,13 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
             $sortFn = $sortFn ?? null;
             if ($sortFn === null) {
                 switch ($direction) {
-                    case SORT_ASC:
-                        ksort($items, $sortFlags ?? SORT_REGULAR);
-                        break;
                     case SORT_DESC:
                         krsort($items, $sortFlags ?? SORT_REGULAR);
                         break;
+                    case SORT_ASC:
                     default:
-                        throw new \InvalidArgumentException(
-                            sprintf(
-                                'Invalid direction: "%s". Valid values are the following constants: SORT_ASC, SORT_DESC.',
-                                $direction
-                            )
-                        );
+                        ksort($items, $sortFlags ?? SORT_REGULAR);
+                        break;
                 }
 
             } else {
@@ -538,19 +578,13 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
             $sortFn = $sortFn ?? null;
             if ($sortFn === null) {
                 switch ($direction) {
-                    case SORT_ASC:
-                        asort($items, $sortFlags ?? SORT_REGULAR);
-                        break;
                     case SORT_DESC:
                         arsort($items, $sortFlags ?? SORT_REGULAR);
                         break;
+                    case SORT_ASC:
                     default:
-                        throw new \InvalidArgumentException(
-                            sprintf(
-                                'Invalid direction: "%s". Valid values are the following constants: SORT_ASC, SORT_DESC.',
-                                $direction
-                            )
-                        );
+                        asort($items, $sortFlags ?? SORT_REGULAR);
+                        break;
                 }
 
             } else {
@@ -685,7 +719,7 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
             foreach ($items as $key => $value) {
                 $result = $fn($value, $key);
                 if (!is_iterable($result)) {
-                    throw new \LogicException('Callable must return iterable result');
+                    throw new \LogicException('Passed to flatMap() callback function must return iterable data');
                 }
 
                 foreach ($result as $item) {
@@ -703,15 +737,11 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     protected function getSortByPropertyFunction(string $propertyName, int $direction): callable
     {
         if (!in_array($direction, [SORT_ASC, SORT_DESC], true)) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    'Invalid sort "%s". Available constants are: [%s]',
-                    $direction,
-                    implode(', ', ['SORT_ASC', 'SORT_DESC'])
-                )
-            );
+            throw new \InvalidArgumentException(sprintf(
+                'Invalid sort direction "%s". Allowed value is one of the following builtin PHP constants: SORT_ASC or SORT_DESC',
+                $direction
+            ));
         }
-
         return function (iterable $items) use ($propertyName, $direction) {
             $items = $this->iterableToArray($items);
             $propAccessor = PropertyAccess::createPropertyAccessorBuilder()
@@ -722,11 +752,23 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
             uasort(
                 $items,
                 static function ($a, $b) use ($propertyName, $direction, $propAccessor) {
-                    return $direction === SORT_ASC
-                        ? $propAccessor->getValue($a, $propertyName)
-                        <=> $propAccessor->getValue($b, $propertyName)
-                        : $propAccessor->getValue($b, $propertyName)
-                        <=> $propAccessor->getValue($a, $propertyName);
+                    try {
+                        return $direction === SORT_ASC
+                            ? $propAccessor->getValue($a, $propertyName) <=> $propAccessor->getValue($b, $propertyName)
+                            : $propAccessor->getValue($b, $propertyName) <=> $propAccessor->getValue($a, $propertyName);
+                    } catch (NoSuchPropertyException $e) {
+                        throw new \InvalidArgumentException(
+                            sprintf('Bad property name: "%s". Got the error: "%s"', $propertyName, $e->getMessage()),
+                            $e->getCode(),
+                            $e
+                        );
+                    } catch (NoSuchIndexException $e) {
+                        throw new \InvalidArgumentException(
+                            sprintf('Bad index: "%s". Got the error: "%s"', $propertyName, $e->getMessage()),
+                            $e->getCode(),
+                            $e
+                        );
+                    }
                 }
             );
 

@@ -6,15 +6,8 @@ declare(strict_types=1);
 namespace VKPHPUtils\Chain;
 
 
-use Traversable;
-
 class ChainImmutable extends Chain
 {
-    /**
-     * @var Generator
-     */
-    private $generator;
-
     private function __construct(iterable $iterable)
     {
         $this->generator = new Generator($iterable);
@@ -43,28 +36,6 @@ class ChainImmutable extends Chain
     public function reverse(bool $saveIndex = false): Chain
     {
         return new self($this->applyFn($this->getReverseFunction($saveIndex)));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function hasKey($key): bool
-    {
-        foreach ($this as $index => $v) {
-            if ($index === $key) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function reduce(callable $fn, $initialValue = null)
-    {
-        return array_reduce($this->toArray(), $fn, $initialValue);
     }
 
     /**
@@ -156,13 +127,9 @@ class ChainImmutable extends Chain
     }
 
     /**
-     * Retrieve an external iterator
-     * @link https://php.net/manual/en/iteratoraggregate.getiterator.php
-     * @return Traversable An instance of an object implementing <b>Iterator</b> or
-     * <b>Traversable</b>
-     * @since 5.0.0
+     * @return iterable
      */
-    public function getIterator()
+    public function getIterator(): iterable
     {
         return $this->generator->getIterator();
     }
@@ -264,26 +231,6 @@ class ChainImmutable extends Chain
     /**
      * @inheritDoc
      */
-    public function isEmpty(): bool
-    {
-        foreach ($this as $item) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function size(): int
-    {
-        return iterator_count($this->generator);
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function sortByProperty(string $propertyName, int $direction = SORT_ASC): Chain
     {
         return new self($this->applyFn($this->getSortByPropertyFunction($propertyName, $direction)));
@@ -327,34 +274,6 @@ class ChainImmutable extends Chain
     public function setValue($key, $value): Chain
     {
         return new self($this->applyFn($this->getSetValueFunction($key, $value)));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getValue($key)
-    {
-        foreach ($this as $k => $item) {
-            if ($k === $key) {
-                return $item;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function search($value)
-    {
-        foreach ($this as $k => $item) {
-            if ($value === $item) {
-                return $k;
-            }
-        }
-
-        return null;
     }
 
     /**

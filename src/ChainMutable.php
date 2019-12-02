@@ -6,19 +6,12 @@ declare(strict_types=1);
 namespace VKPHPUtils\Chain;
 
 
-use Traversable;
-
 class ChainMutable extends Chain
 {
     /**
-     * @var Generator
-     */
-    private $generator;
-
-    /**
      * @var Generator[]
      */
-    private $operatorsChain;
+    private array $operatorsChain;
 
     private function __construct(iterable $items)
     {
@@ -64,54 +57,6 @@ class ChainMutable extends Chain
     /**
      * @inheritDoc
      */
-    public function hasKey($key): bool
-    {
-        foreach ($this as $k => $v) {
-            if ($k === $key) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function isEmpty(): bool
-    {
-        foreach ($this as $item) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function size(): int
-    {
-        return count($this->toArray());
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function toArray(): array
-    {
-        $items = [];
-        foreach ($this as $k => $value) {
-            $items[$k] = $value;
-        }
-        $this->operatorsChain = [$this->generator];
-
-        return $items;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function values(): Chain
     {
         $this->operatorsChain[] = new Generator(
@@ -125,13 +70,9 @@ class ChainMutable extends Chain
     }
 
     /**
-     * Retrieve an external iterator
-     * @link https://php.net/manual/en/iteratoraggregate.getiterator.php
-     * @return Traversable An instance of an object implementing <b>Iterator</b> or
-     * <b>Traversable</b>
-     * @since 5.0.0
+     * @return iterable
      */
-    public function getIterator()
+    public function getIterator(): iterable
     {
         $generator = end($this->operatorsChain);
         $this->operatorsChain = [$this->generator];
@@ -305,6 +246,20 @@ class ChainMutable extends Chain
     /**
      * @inheritDoc
      */
+    public function toArray(): array
+    {
+        $items = [];
+        foreach ($this as $k => $value) {
+            $items[$k] = $value;
+        }
+        $this->operatorsChain = [$this->generator];
+
+        return $items;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function unique(bool $saveIndex = false): Chain
     {
         $this->operatorsChain[] = new Generator(
@@ -411,14 +366,6 @@ class ChainMutable extends Chain
     /**
      * @inheritDoc
      */
-    public function reduce(callable $reduceFn, $initialValue = null)
-    {
-        return array_reduce($this->toArray(), $reduceFn, $initialValue);
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function frequencyAnalysis(): Chain
     {
         $this->operatorsChain[] = new Generator(
@@ -461,35 +408,6 @@ class ChainMutable extends Chain
 
         return $this;
     }
-
-    /**
-     * @inheritDoc
-     */
-    public function getValue($key)
-    {
-        foreach ($this as $k => $v) {
-            if ($k === $key) {
-                return $v;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function search($value)
-    {
-        foreach ($this as $k => $v) {
-            if ($v === $value) {
-                return $k;
-            }
-        }
-
-        return null;
-    }
-
 
     /**
      * @inheritDoc

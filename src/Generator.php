@@ -6,42 +6,35 @@ declare(strict_types=1);
 namespace VKPHPUtils\Chain;
 
 
-use Traversable;
-
 class Generator implements \IteratorAggregate
 {
-    /**
-     * @var iterable
-     */
-    private $iterator;
+    private \Iterator $iterator;
+    private array $cache = [];
 
-    private $cache = [];
-
-    /**
-     * Generator constructor.
-     * @param iterable $iterator
-     */
-    public function __construct(iterable $iterator)
+    public function __construct($iterator)
     {
         if (is_array($iterator)) {
             $this->iterator = new \ArrayIterator($iterator);
         } elseif ($iterator instanceof \IteratorAggregate) {
-            $this->iterator = $iterator->getIterator();
+            try {
+                $this->iterator = $iterator->getIterator();
+            } catch (\Exception $e) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'Failed to get iterator on IteratorAggregate object of class "%s". Got the error: "%s"',
+                        get_class($iterator),
+                        $e->getMessage()
+                    ), $e->getCode(), $e
+                );
+            }
         } elseif ($iterator instanceof \Iterator) {
             $this->iterator = $iterator;
-        } else {
-            throw new \RuntimeException('Only array, Iterator, IteratorAggregate supported');
         }
+
+        assert($this->iterator instanceof \Iterator, 'Failed to initialize ' . self::class);
     }
 
-    /**
-     * Retrieve an external iterator
-     * @link https://php.net/manual/en/iteratoraggregate.getiterator.php
-     * @return Traversable An instance of an object implementing <b>Iterator</b> or
-     * <b>Traversable</b>
-     * @since 5.0.0
-     */
-    public function getIterator()
+    public function getIterator(): iterable
     {
         foreach ($this->cache as $index => $item) {
             yield $index => $item;
