@@ -1,5 +1,6 @@
 # PHP Chain Library
 
+[![Build Status](https://travis-ci.org/kustov-vitalik/php-utils-chain.svg?branch=master)](https://travis-ci.org/kustov-vitalik/php-utils-chain)
 [![Latest Stable Version](https://poser.pugx.org/vk-php-utils/chain/v/stable)](https://packagist.org/packages/vk-php-utils/chain)
 [![Coverage Status](https://coveralls.io/repos/github/kustov-vitalik/php-utils-chain/badge.svg?branch=master)](https://coveralls.io/github/kustov-vitalik/php-utils-chain?branch=master)
 [![Latest Unstable Version](https://poser.pugx.org/vk-php-utils/chain/v/unstable)](https://packagist.org/packages/vk-php-utils/chain)
