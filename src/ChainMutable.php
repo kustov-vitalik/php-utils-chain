@@ -83,21 +83,6 @@ class ChainMutable extends Chain
     /**
      * @inheritDoc
      */
-    public function forEach(callable $fn): Chain
-    {
-        $this->operatorsChain[] = new Generator(
-            $this->applyFn(
-                end($this->operatorsChain),
-                $this->getForEachFunction($fn)
-            )
-        );
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function filter(?callable $fn = null, bool $saveIndex = false): Chain
     {
         $this->operatorsChain[] = new Generator(

@@ -280,7 +280,7 @@ class ChainMutableTest extends TestCase
             function ($value, $index) use ($person) {
                 $person->age += 1;
             }
-        )->toArray();
+        );
 
         $this->assertEquals(30, $person->age);
     }

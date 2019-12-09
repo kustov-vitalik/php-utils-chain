@@ -22,7 +22,7 @@ class ImmutableChainsTest extends TestCase
         $this->assertNotSame($chain, $chain->flatMap(static function ($i) {return [$i];}));
         $this->assertNotSame($chain, $chain->merge(1));
         $this->assertNotSame($chain, $chain->unique());
-        $this->assertNotSame($chain, $chain->forEach(static function ($i) {}));
+        $this->assertSame($chain, $chain->forEach(static function ($i) {}));
         $this->assertNotSame($chain, $chain->values());
         $this->assertNotSame($chain, $chain->keys());
         $this->assertNotSame($chain, $chain->slice(1,2));

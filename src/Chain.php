@@ -136,6 +136,19 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
     }
 
     /**
+     * Just calls $fn for each chain element
+     * @param callable $fn
+     * @return Chain
+     */
+    public function forEach(callable $fn): Chain
+    {
+        foreach ($this as $k => $value) {
+            $fn($value, $k);
+        }
+        return $this;
+    }
+
+    /**
      * Check is the chain empty
      * @return bool
      */
@@ -298,13 +311,6 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
      * @return Chain
      */
     abstract public function filter(?callable $fn = null, bool $saveIndex = false): Chain;
-
-    /**
-     * Just calls $fn for each chain element
-     * @param callable $fn
-     * @return Chain
-     */
-    abstract public function forEach(callable $fn): Chain;
 
     /**
      * Get chain values
@@ -615,20 +621,6 @@ abstract class Chain implements \IteratorAggregate, \JsonSerializable, \Countabl
                 } /** @noinspection TypeUnsafeComparisonInspection */ elseif ($fn($value) != false) {
                     yield $saveIndex ? $index : $counter++ => $value;
                 }
-            }
-        };
-    }
-
-    /**
-     * @param callable $fn
-     * @return callable
-     */
-    protected function getForEachFunction(callable $fn): callable
-    {
-        return static function (iterable $items) use ($fn) {
-            foreach ($items as $index => $item) {
-                $fn($item, $index);
-                yield $index => $item;
             }
         };
     }

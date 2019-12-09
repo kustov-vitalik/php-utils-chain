@@ -199,14 +199,6 @@ class ChainImmutable extends Chain
     /**
      * @inheritDoc
      */
-    public function forEach(callable $fn): Chain
-    {
-        return new self($this->applyFn($this->getForEachFunction($fn)));
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function values(): Chain
     {
         return new self($this->applyFn($this->getValuesFunction()));
