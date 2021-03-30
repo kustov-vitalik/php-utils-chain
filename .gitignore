@@ -4,3 +4,5 @@ vendor
 .phpunit.result.cache
 build
 phpunit.xml
+composer.lock
+.DS_Store

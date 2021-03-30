@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/7.4/phpunit.xsd">
-    <testsuites>
-        <testsuite name="Unit Tests">
-            <directory>./tests/Unit</directory>
-        </testsuite>
-        <testsuite name="Functional Tests">
-            <directory>./tests/Functional</directory>
-        </testsuite>
-    </testsuites>
-    <filter>
-        <whitelist addUncoveredFilesFromWhitelist="true" processUncoveredFilesFromWhitelist="true">
-            <directory>./src</directory>
-        </whitelist>
-    </filter>
-    <logging>
-        <log type="coverage-clover" target="build/logs/clover.xml"/>
-    </logging>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <coverage includeUncoveredFiles="true" processUncoveredFiles="true">
+    <include>
+      <directory>./src</directory>
+    </include>
+    <report>
+      <clover outputFile="build/logs/clover.xml"/>
+    </report>
+  </coverage>
+  <testsuites>
+    <testsuite name="Unit Tests">
+      <directory>./tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Functional Tests">
+      <directory>./tests/Functional</directory>
+    </testsuite>
+  </testsuites>
+  <logging/>
 </phpunit>
