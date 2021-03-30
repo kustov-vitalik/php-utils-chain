@@ -11,7 +11,7 @@
 The library was created to make working with collections more simple in PHP
 
 ## Requirements
-- PHP 7.4
+- PHP >=7.4 (PHP 8 is supported)
 - Extensions: json, mbstring
 
 ## Installation
