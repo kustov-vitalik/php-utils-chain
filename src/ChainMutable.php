@@ -70,9 +70,9 @@ class ChainMutable extends Chain
     }
 
     /**
-     * @return iterable
+     * @return \Generator
      */
-    public function getIterator(): iterable
+    public function getIterator(): \Generator
     {
         $generator = end($this->operatorsChain);
         $this->operatorsChain = [$this->generator];

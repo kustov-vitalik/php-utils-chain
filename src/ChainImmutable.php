@@ -129,7 +129,7 @@ class ChainImmutable extends Chain
     /**
      * @return iterable
      */
-    public function getIterator(): iterable
+    public function getIterator(): \Generator
     {
         return $this->generator->getIterator();
     }

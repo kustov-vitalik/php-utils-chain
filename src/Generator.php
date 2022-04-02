@@ -34,7 +34,7 @@ class Generator implements \IteratorAggregate
         assert($this->iterator instanceof \Iterator, 'Failed to initialize ' . self::class);
     }
 
-    public function getIterator(): iterable
+    public function getIterator(): \Generator
     {
         foreach ($this->cache as $index => $item) {
             yield $index => $item;

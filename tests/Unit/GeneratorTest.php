@@ -174,7 +174,7 @@ class GeneratorTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
         new Generator(new class implements \IteratorAggregate {
-            public function getIterator()
+            public function getIterator(): Traversable
             {
                 throw new \RuntimeException('test exception in ' . __METHOD__);
             }
